@@ -1,0 +1,57 @@
+const int greenLedPin = 7;    // LED verte sur la broche 7
+const int redLedPin = 8;      // LED rouge sur la broche 8
+const int buzzerPin = 10;     // Buzzer sur la broche 10
+const int motorControlPin = 9; // Moteur PWM sur la broche 9 (~)
+
+void setup() {
+  // Configuration des broches
+  pinMode(greenLedPin, OUTPUT);
+  pinMode(redLedPin, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
+  pinMode(motorControlPin, OUTPUT);
+
+  // État initial
+  digitalWrite(motorControlPin, LOW);
+  digitalWrite(buzzerPin, LOW);
+  
+  // Communication série
+  Serial.begin(9600);
+  Serial.println("Système prêt. Envoyez '1' (Actif) ou '0' (Standby)");
+}
+
+void loop() {
+  if (Serial.available() > 0) {
+    char receivedChar = Serial.read();
+
+    // Mode Actif - Moteur à 50% + LED rouge
+    if (receivedChar == '1') {
+      digitalWrite(redLedPin, HIGH);
+      digitalWrite(greenLedPin, LOW);
+      digitalWrite(buzzerPin, LOW);
+      analogWrite(motorControlPin, 128); // 50% PWM
+      Serial.println("Mode Actif: Moteur à 50%");
+    }
+
+    // Mode Standby - Décélération progressive + LED verte + Buzzer
+    else if (receivedChar == '0') {
+      digitalWrite(redLedPin, LOW);
+      digitalWrite(greenLedPin, HIGH);
+      
+      // Décélération progressive (128 → 0)
+      Serial.println("Décélération en cours...");
+      for (int speed = 128; speed >= 0; speed--) {
+        analogWrite(motorControlPin, speed);
+        tone(buzzerPin, 1000, 100); // Bip court à chaque étape
+        delay(30); // Ajustez pour durée totale (ici ~3.8s)
+      }
+      
+      digitalWrite(buzzerPin, HIGH); // Buzzer continu après arrêt
+      Serial.println("Mode Standby: Moteur arrêté");
+    }
+
+    // Gestion des commandes invalides
+    else {
+      Serial.println("Erreur: Commande invalide. Utilisez '0' ou '1'");
+    }
+  }
+}
